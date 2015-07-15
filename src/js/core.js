@@ -992,6 +992,108 @@ function MediumEditor(elements, options) {
 
         pasteHTML: function (html, options) {
             this.getExtensionByName('paste').pasteHTML(html, options);
-        }
+        },
+
+        caretIsAtStart: function (editableElementIndex) {
+            var atStart,
+                editableElement,
+                selection,
+                selectionRange,
+                testRange;
+
+            editableElement = this.elements[editableElementIndex || 0];
+            atStart = false;
+            selectionRange = void 0;
+            testRange = void 0;
+
+            if (window.getSelection) {
+              selection = window.getSelection();
+
+              if (selection.rangeCount) {
+                selectionRange = selection.getRangeAt(0);
+                testRange = selectionRange.cloneRange();
+                testRange.selectNodeContents(editableElement);
+                testRange.setEnd(selectionRange.startContainer, selectionRange.startOffset);
+                atStart = testRange.toString() === '';
+              }
+            } else if (document.selection && document.selection.type !== 'Control') {
+                selectionRange = document.selection.createRange();
+                testRange = selectionRange.duplicate();
+                testRange.moveToElementText(editableElement);
+                testRange.setEndPoint('EndToStart', selectionRange);
+                atStart = testRange.text === '';
+            }
+
+            return atStart;
+        },
+
+        caretIsAtEnd: function (editableElementIndex) {
+            var atEnd,
+                editableElement,
+                selection,
+                selectionRange,
+                testRange;
+
+            editableElement = this.elements[editableElementIndex || 0];
+            atEnd = false;
+            selectionRange = void 0;
+            testRange = void 0;
+
+            if (window.getSelection) {
+                selection = window.getSelection();
+
+                if (selection.rangeCount) {
+                    selectionRange = selection.getRangeAt(0);
+                    testRange = selectionRange.cloneRange();
+                    testRange.selectNodeContents(editableElement);
+                    testRange.setStart(selectionRange.endContainer, selectionRange.endOffset);
+                    atEnd = testRange.toString() === '';
+                }
+            } else if (document.selection && document.selection.type !== 'Control') {
+                selectionRange = document.selection.createRange();
+                testRange = selectionRange.duplicate();
+                testRange.moveToElementText(editableElement);
+                testRange.setEndPoint('StartToEnd', selectionRange);
+                atEnd = testRange.text === '';
+            }
+
+            return atEnd;
+        },
+
+        /**
+         * NOT DOCUMENTED - exposed as a helper for other extensions to use
+         */
+
+        collapseCaret: function (collapseToStart, editableElementIndex) {
+            var editableElement,
+                range,
+                selection,
+                textRange;
+
+            editableElement = this.elements[editableElementIndex || 0];
+            if (window.getSelection && document.createRange) {
+                range = document.createRange();
+                range.selectNodeContents(editableElement);
+                range.collapse(collapseToStart);
+                selection = window.getSelection();
+                selection.removeAllRanges();
+
+                return selection.addRange(range);
+            } else if (document.body.createTextRange) {
+                textRange = document.body.createTextRange();
+                textRange.moveToElementText(editableElement);
+                textRange.collapse(collapseToStart);
+
+                return textRange.select();
+            }
+        },
+
+        setCaretAtStart: function (editableElementIndex) {
+            return this.collapseCaret(true, editableElementIndex);
+        },
+
+        setCaretAtEnd: function (editableElementIndex) {
+            return this.collapseCaret(false, editableElementIndex);
+        };
     };
 }());
